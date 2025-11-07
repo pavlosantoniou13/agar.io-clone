@@ -14,6 +14,7 @@ const config = require('../../config');
 const util = require('./lib/util');
 const mapUtils = require('./map/map');
 const {getPosition} = require("./lib/entityUtils");
+const playerBalances = {};
 
 let map = new mapUtils.Map(config);
 
@@ -52,9 +53,46 @@ function generateSpawnpoint() {
 const addPlayer = (socket) => {
     var currentPlayer = new mapUtils.playerUtils.Player(socket.id);
 
+    socket.on('walletConnected', (data) => {
+    const walletAddress = data.wallet;
+    console.log(`[WALLET] Player ${socket.id} connected wallet: ${walletAddress}`);
+    currentPlayer.walletAddress = walletAddress;
+    });
+
+
+    socket.on('depositRequest', ({ wallet, amount }) => {
+        if (!wallet || amount < 1 || amount > 5) {
+            socket.emit('serverMSG', 'Invalid deposit amount.');
+            return;
+        }
+
+        const depositAmount = amount * 1000000; // mock conversion to lamports
+
+        if (!playerBalances[wallet]) {
+            playerBalances[wallet] = 0;
+        }
+
+        playerBalances[wallet] += depositAmount;
+        currentPlayer.balance = playerBalances[wallet];
+
+        console.log(`[DEPOSIT] ${wallet} deposited $${amount}. New balance: ${playerBalances[wallet]}`);
+
+        socket.emit('depositConfirmed', {
+            balance: playerBalances[wallet]
+        });
+    });
+     
+
     socket.on('gotit', function (clientPlayerData) {
         console.log('[INFO] Player ' + clientPlayerData.name + ' connecting!');
         currentPlayer.init(generateSpawnpoint(), config.defaultPlayerMass);
+
+        // Require wallet and minimum balance
+        if (!currentPlayer.walletAddress || !playerBalances[currentPlayer.walletAddress] || playerBalances[currentPlayer.walletAddress] < 1000000) {
+            socket.emit('kick', 'Insufficient balance or wallet not connected.');
+            console.log(`[DENIED] ${clientPlayerData.name} tried to join without enough balance.`);
+            return;
+        }
 
         if (map.players.findIndexByID(socket.id) > -1) {
             console.log('[INFO] Player ID is already connected, kicking.');

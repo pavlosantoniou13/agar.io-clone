@@ -46,6 +46,11 @@ function validNick() {
     return regex.exec(playerNameInput.value) !== null;
 }
 
+// At the top of your JS file (before window.onload)
+window.socket = io({ query: "type=player" }); // or type="wallet" if you want a separate type
+setupSocket(window.socket);
+
+
 window.onload = function () {
 
     var btn = document.getElementById('startButton'),
@@ -386,8 +391,18 @@ window.connectWallet = async function () {
             const response = await window.solana.connect();
             const walletAddress = response.publicKey.toString();
             console.log("Connected to wallet:", walletAddress);
-            document.getElementById('walletStatus').innerText = `Wallet: ${walletAddress}`;
+
             window.walletAddress = walletAddress;
+            document.getElementById('walletStatus').innerText = `Wallet: ${walletAddress}`;
+
+            if (window.socket) {
+                window.socket.emit('walletConnected', { wallet: walletAddress });
+            }
+
+            // Enable deposit button if you disabled it initially
+            const depositBtn = document.getElementById('depositBtn');
+            if (depositBtn) depositBtn.disabled = false;
+
         } catch (err) {
             console.error("Wallet connection failed:", err);
         }
@@ -395,3 +410,42 @@ window.connectWallet = async function () {
         alert("Phantom wallet not found. Please install it.");
     }
 };
+
+
+window.deposit = function () {
+    const amount = parseInt(document.getElementById('depositAmount').value);
+    if (isNaN(amount) || amount < 1 || amount > 5) {
+        alert("Please enter a valid amount between 1 and 5.");
+        return;
+    }
+
+    if (window.socket && window.walletAddress) {
+        window.socket.emit('depositRequest', {
+            wallet: window.walletAddress,
+            amount: amount
+        });
+    } else {
+        alert("Connect your wallet first.");
+        console.log("Wallet address at deposit:", window.walletAddress);
+    }
+};
+
+window.simulateDeposit = function () {
+    const amount = Number(document.getElementById('depositAmountSim').value);
+    console.log("Deposit amount entered:", amount);
+
+    if (isNaN(amount) || amount < 1 || amount > 5) {
+        alert("Please enter a valid amount between 1 and 5.");
+        return;
+    }
+
+    if (window.socket && window.walletAddress) {
+        window.socket.emit('depositRequest', {
+            wallet: window.walletAddress,
+            amount: amount
+        });
+    } else {
+        alert("Connect your wallet first.");
+    }
+};
+
