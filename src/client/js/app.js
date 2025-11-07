@@ -377,3 +377,21 @@ function resize() {
 
     socket.emit('windowResized', { screenWidth: global.screen.width, screenHeight: global.screen.height });
 }
+
+window.connectWallet = async function () {
+    console.log("Connect Wallet button clicked");
+
+    if (window.solana && window.solana.isPhantom) {
+        try {
+            const response = await window.solana.connect();
+            const walletAddress = response.publicKey.toString();
+            console.log("Connected to wallet:", walletAddress);
+            document.getElementById('walletStatus').innerText = `Wallet: ${walletAddress}`;
+            window.walletAddress = walletAddress;
+        } catch (err) {
+            console.error("Wallet connection failed:", err);
+        }
+    } else {
+        alert("Phantom wallet not found. Please install it.");
+    }
+};
