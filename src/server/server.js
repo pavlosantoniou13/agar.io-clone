@@ -51,15 +51,19 @@ function generateSpawnpoint() {
 
 
 const addPlayer = (socket) => {
-    var currentPlayer = new mapUtils.playerUtils.Player(socket.id);
+    const currentPlayer = new mapUtils.playerUtils.Player(socket.id);
 
+    // === Wallet Connection ===
     socket.on('walletConnected', (data) => {
-    const walletAddress = data.wallet;
-    console.log(`[WALLET] Player ${socket.id} connected wallet: ${walletAddress}`);
-    currentPlayer.walletAddress = walletAddress;
+        const walletAddress = data.wallet;
+        console.log(`[WALLET] Player ${socket.id} connected wallet: ${walletAddress}`);
+        currentPlayer.walletAddress = walletAddress;
+
+        if (!playerBalances[walletAddress]) playerBalances[walletAddress] = 0;
+        currentPlayer.balance = playerBalances[walletAddress];
     });
 
-
+    // === Deposit Request ===
     socket.on('depositRequest', ({ wallet, amount }) => {
         if (!wallet || amount < 1 || amount > 5) {
             socket.emit('serverMSG', 'Invalid deposit amount.');
@@ -68,75 +72,94 @@ const addPlayer = (socket) => {
 
         const depositAmount = amount * 1000000; // mock conversion to lamports
 
-        if (!playerBalances[wallet]) {
-            playerBalances[wallet] = 0;
-        }
+        if (!playerBalances[wallet]) playerBalances[wallet] = 0;
 
         playerBalances[wallet] += depositAmount;
         currentPlayer.balance = playerBalances[wallet];
 
         console.log(`[DEPOSIT] ${wallet} deposited $${amount}. New balance: ${playerBalances[wallet]}`);
 
-        socket.emit('depositConfirmed', {
-            balance: playerBalances[wallet]
-        });
+        // Emit depositConfirmed safely
+        try {
+            socket.emit('depositConfirmed', { balance: playerBalances[wallet] });
+        } catch (err) {
+            console.error('[ERROR] Failed to emit depositConfirmed:', err);
+        }
     });
-     
 
-    socket.on('gotit', function (clientPlayerData) {
-        console.log('[INFO] Player ' + clientPlayerData.name + ' connecting!');
-        currentPlayer.init(generateSpawnpoint(), config.defaultPlayerMass);
+    // === Player Join (gotit) ===
+    socket.on('gotit', (clientPlayerData) => {
+        if (!clientPlayerData || !clientPlayerData.name) {
+            socket.emit('kick', 'Invalid player data.');
+            console.log('[WARN] gotit received invalid data:', clientPlayerData);
+            return;
+        }
 
-        // Require wallet and minimum balance
-        if (!currentPlayer.walletAddress || !playerBalances[currentPlayer.walletAddress] || playerBalances[currentPlayer.walletAddress] < 1000000) {
+        const wallet = currentPlayer.walletAddress;
+        const balance = wallet ? playerBalances[wallet] : 0;
+
+        // Check wallet & balance
+        if (!wallet || balance < 1000000) {
             socket.emit('kick', 'Insufficient balance or wallet not connected.');
             console.log(`[DENIED] ${clientPlayerData.name} tried to join without enough balance.`);
             return;
         }
 
+        console.log('[INFO] Player ' + clientPlayerData.name + ' connecting!');
+
+        // Initialize player
+        currentPlayer.init(generateSpawnpoint(), config.defaultPlayerMass);
+
+        // Check duplicate ID
         if (map.players.findIndexByID(socket.id) > -1) {
             console.log('[INFO] Player ID is already connected, kicking.');
             socket.disconnect();
-        } else if (!util.validNick(clientPlayerData.name)) {
-            socket.emit('kick', 'Invalid username.');
-            socket.disconnect();
-        } else {
-            console.log('[INFO] Player ' + clientPlayerData.name + ' connected!');
-            sockets[socket.id] = socket;
-
-            const sanitizedName = clientPlayerData.name.replace(/(<([^>]+)>)/ig, '');
-            clientPlayerData.name = sanitizedName;
-
-            currentPlayer.clientProvidedData(clientPlayerData);
-            map.players.pushNew(currentPlayer);
-            io.emit('playerJoin', { name: currentPlayer.name });
-            console.log('Total players: ' + map.players.data.length);
+            return;
         }
 
+        // Validate nickname
+        if (!util.validNick(clientPlayerData.name)) {
+            socket.emit('kick', 'Invalid username.');
+            socket.disconnect();
+            return;
+        }
+
+        // Sanitize and register player
+        clientPlayerData.name = clientPlayerData.name.replace(/(<([^>]+)>)/ig, '');
+        currentPlayer.clientProvidedData(clientPlayerData);
+        currentPlayer.name = clientPlayerData.name;
+
+        // map.players.pushNew(currentPlayer);
+        // sockets[socket.id] = socket;
+
+        // Broadcast safely
+        try {
+            io.emit('playerJoin', { name: currentPlayer.name });
+        } catch (err) {
+            console.error('[ERROR] Failed to broadcast playerJoin:', err);
+        }
+
+        console.log('Total players: ' + map.players.data.length);
     });
 
-    socket.on('pingcheck', () => {
-        socket.emit('pongcheck');
-    });
-
+    // === Other socket events with safe emit ===
+    socket.on('pingcheck', () => socket.emit('pongcheck'));
     socket.on('windowResized', (data) => {
         currentPlayer.screenWidth = data.screenWidth;
         currentPlayer.screenHeight = data.screenHeight;
     });
-
     socket.on('respawn', () => {
-        map.players.removePlayerByID(currentPlayer.id);
-        socket.emit('welcome', currentPlayer, {
-            width: config.gameWidth,
-            height: config.gameHeight
-        });
-        console.log('[INFO] User ' + currentPlayer.name + ' has respawned');
+    map.players.removePlayerByID(currentPlayer.id);
+    currentPlayer.init(generateSpawnpoint(), config.defaultPlayerMass);
+    map.players.pushNew(currentPlayer);
+    sockets[socket.id] = socket;
+    socket.emit('welcome', currentPlayer, { width: config.gameWidth, height: config.gameHeight });
+    console.log('[INFO] User ' + currentPlayer.name + ' has respawned');
     });
-
     socket.on('disconnect', () => {
         map.players.removePlayerByID(currentPlayer.id);
         console.log('[INFO] User ' + currentPlayer.name + ' has disconnected');
-        socket.broadcast.emit('playerDisconnect', { name: currentPlayer.name });
+        if (socket) socket.broadcast.emit('playerDisconnect', { name: currentPlayer.name });
     });
 
     socket.on('playerChat', (data) => {
@@ -214,11 +237,12 @@ const addPlayer = (socket) => {
 
     // Heartbeat function, update everytime.
     socket.on('0', (target) => {
-        currentPlayer.lastHeartbeat = new Date().getTime();
+    currentPlayer.lastHeartbeat = new Date().getTime();
         if (target.x !== currentPlayer.x || target.y !== currentPlayer.y) {
             currentPlayer.target = target;
         }
     });
+
 
     socket.on('1', function () {
         // Fire food.
@@ -347,26 +371,38 @@ const gameloop = () => {
     map.balanceMass(config.foodMass, config.gameMass, config.maxFood, config.maxVirus);
 };
 
+const sendLeaderboard = (socket) => {
+    if (!socket) return; // safety check
+    socket.emit('leaderboard', {
+        players: map.players.data.length,
+        leaderboard
+    });
+};
+
 const sendUpdates = () => {
-    spectators.forEach(updateSpectator);
-    map.enumerateWhatPlayersSee(function (playerData, visiblePlayers, visibleFood, visibleMass, visibleViruses) {
-        sockets[playerData.id].emit('serverTellPlayerMove', playerData, visiblePlayers, visibleFood, visibleMass, visibleViruses);
-        if (leaderboardChanged) {
-            sendLeaderboard(sockets[playerData.id]);
+    // Update spectators safely
+    spectators.forEach(socketID => {
+        const sock = sockets[socketID];
+        if (sock) updateSpectator(socketID);
+    });
+
+    // Update players safely
+    map.enumerateWhatPlayersSee((playerData, visiblePlayers, visibleFood, visibleMass, visibleViruses) => {
+        const sock = sockets[playerData.id];
+        if (sock) {  // Only emit if socket exists
+            sock.emit('serverTellPlayerMove', playerData, visiblePlayers, visibleFood, visibleMass, visibleViruses);
+            if (leaderboardChanged) sendLeaderboard(sock);
         }
     });
 
     leaderboardChanged = false;
 };
 
-const sendLeaderboard = (socket) => {
-    socket.emit('leaderboard', {
-        players: map.players.data.length,
-        leaderboard
-    });
-}
 const updateSpectator = (socketID) => {
-    let playerData = {
+    const sock = sockets[socketID];
+    if (!sock) return; // Exit if socket is gone
+
+    const playerData = {
         x: config.gameWidth / 2,
         y: config.gameHeight / 2,
         cells: [],
@@ -375,11 +411,11 @@ const updateSpectator = (socketID) => {
         id: socketID,
         name: ''
     };
-    sockets[socketID].emit('serverTellPlayerMove', playerData, map.players.data, map.food.data, map.massFood.data, map.viruses.data);
-    if (leaderboardChanged) {
-        sendLeaderboard(sockets[socketID]);
-    }
-}
+
+    sock.emit('serverTellPlayerMove', playerData, map.players.data, map.food.data, map.massFood.data, map.viruses.data);
+    if (leaderboardChanged) sendLeaderboard(sockets[socketID]);
+};
+
 
 setInterval(tickGame, 1000 / 60);
 setInterval(gameloop, 1000);

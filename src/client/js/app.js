@@ -154,12 +154,13 @@ $("#split").click(function () {
 });
 
 function handleDisconnect() {
-    socket.close();
-    if (!global.kicked) { // We have a more specific error message 
+    if (window.socket) {
+        window.socket.close();
+    }
+    if (!global.kicked) { 
         render.drawErrorMessage('Disconnected!', graph, global.screen);
     }
 }
-
 // socket stuff.
 function setupSocket(socket) {
     // Handle ping.
@@ -182,7 +183,7 @@ function setupSocket(socket) {
         player.target = window.canvas.target;
         global.player = player;
         window.chat.player = player;
-        socket.emit('gotit', player);
+        // socket.emit('gotit', player);
         global.gameStart = true;
         window.chat.addSystemLine('Connected to the game!');
         window.chat.addSystemLine('Type <b>-help</b> for a list of commands.');
@@ -214,6 +215,7 @@ function setupSocket(socket) {
     socket.on('leaderboard', (data) => {
         leaderboard = data.leaderboard;
         var status = '<span class="title">Leaderboard</span>';
+        if (!users || !Array.isArray(users)) return
         for (var i = 0; i < leaderboard.length; i++) {
             status += '<br />';
             if (leaderboard[i].id == player.id) {
@@ -281,6 +283,34 @@ function setupSocket(socket) {
         }
         socket.close();
     });
+    socket.on('depositConfirmed', ({ balance }) => {
+    console.log(`[CLIENT] Deposit confirmed! Balance: ${balance}`);
+    window.hasDeposited = true;
+
+    const walletStatus = document.getElementById('walletStatus');
+    if (walletStatus) walletStatus.innerText = `Balance: ${balance}`;
+
+    // Build a proper player object to join
+    if (global.playerName && window.socket && window.socket.connected) {
+        console.log("[CLIENT] Joining game after deposit...");
+
+        const playerData = {
+            name: global.playerName,
+            id: -1,                      // server assigns real ID
+            x: global.screen.width / 2,
+            y: global.screen.height / 2,
+            screenWidth: global.screen.width,
+            screenHeight: global.screen.height,
+            target: { x: global.screen.width / 2, y: global.screen.height / 2 },
+            cells: []  
+    };
+
+        window.socket.emit('gotit', playerData);
+        global.player = playerData; // update global
+    }
+});
+
+
 }
 
 const isUnnamedCell = (name) => name.length < 1;
@@ -354,7 +384,8 @@ function gameLoop() {
                     name: users[i].name,
                     radius: users[i].cells[j].radius,
                     x: users[i].cells[j].x - player.x + global.screen.width / 2,
-                    y: users[i].cells[j].y - player.y + global.screen.height / 2
+                    y: users[i].cells[j].y - player.y + global.screen.height / 2,
+                    balance: users[i].balance || 0
                 });
             }
         }
@@ -370,7 +401,10 @@ function gameLoop() {
 window.addEventListener('resize', resize);
 
 function resize() {
-    if (!socket) return;
+    if (!window.socket) {
+    window.socket = io({ query: "type=player" });
+    setupSocket(window.socket);
+    }   
 
     player.screenWidth = c.width = global.screen.width = global.playerType == 'player' ? window.innerWidth : global.game.width;
     player.screenHeight = c.height = global.screen.height = global.playerType == 'player' ? window.innerHeight : global.game.height;
