@@ -248,6 +248,7 @@ function setupSocket(socket) {
 
     // Handle movement.
     socket.on('serverTellPlayerMove', function (playerData, userData, foodsList, massList, virusList) {
+        console.log(userData);
         if (global.playerType == 'player') {
             player.x = playerData.x;
             player.y = playerData.y;
@@ -289,6 +290,7 @@ function setupSocket(socket) {
     socket.on('depositConfirmed', ({ balance }) => {
     console.log(`[CLIENT] Deposit confirmed! Balance: ${balance}`);
     window.hasDeposited = true;
+    window.currentDeposit = balance; // store it globally
 
     const walletStatus = document.getElementById('walletStatus');
     if (walletStatus) walletStatus.innerText = `Balance: ${balance}`;
@@ -305,7 +307,8 @@ function setupSocket(socket) {
             screenWidth: global.screen.width,
             screenHeight: global.screen.height,
             target: { x: global.screen.width / 2, y: global.screen.height / 2 },
-            cells: []  
+            cells: [], 
+            balance: window.currentDeposit || 0 // track deposited amount
     };
 
         window.socket.emit('gotit', playerData);

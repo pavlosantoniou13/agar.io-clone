@@ -70,7 +70,7 @@ const addPlayer = (socket) => {
             return;
         }
 
-        const depositAmount = amount * 1000000; // mock conversion to lamports
+        const depositAmount = amount ; // mock conversion to lamports
 
         if (!playerBalances[wallet]) playerBalances[wallet] = 0;
 
@@ -104,10 +104,15 @@ const addPlayer = (socket) => {
 
             const sanitizedName = clientPlayerData.name.replace(/(<([^>]+)>)/ig, '');
             clientPlayerData.name = sanitizedName;
+            currentPlayer.balance = clientPlayerData.balance || 0;
 
             currentPlayer.clientProvidedData(clientPlayerData);
             map.players.pushNew(currentPlayer);
-            io.emit('playerJoin', { name: currentPlayer.name });
+            console.log("I run", currentPlayer.balance)
+            io.emit('playerJoin', { 
+            name: currentPlayer.name,
+            balance: currentPlayer.balance // include in join event
+        });
             console.log('Total players: ' + map.players.data.length);
         }
 

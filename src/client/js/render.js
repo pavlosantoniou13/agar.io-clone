@@ -98,8 +98,20 @@ const drawCells = (cells, playerConfig, toggleMassState, borders, graph) => {
         graph.textAlign = 'center';
         graph.textBaseline = 'middle';
         graph.font = 'bold ' + fontSize + 'px sans-serif';
-        graph.strokeText(cell.name, cell.x, cell.y);
-        graph.fillText(cell.name, cell.x, cell.y);
+        //graph.strokeText(cell.name, cell.x, cell.y);
+        //graph.fillText(cell.name, cell.x, cell.y);
+        let displayText = cell.name;
+        
+        displayText += ` ($${cell.balance.toFixed(2)})`; // append deposited balance
+        
+        graph.fillStyle = '#FFFFFF'; // or playerConfig.textColor
+        graph.strokeStyle = '#000000'; // or playerConfig.textBorder
+
+
+        graph.strokeText(displayText, cell.x, cell.y);
+        graph.fillText(displayText, cell.x, cell.y);
+
+        
 
         // Draw the mass (if enabled)
         if (toggleMassState === 1) {
