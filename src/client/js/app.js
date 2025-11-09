@@ -30,6 +30,9 @@ function startGame(type) {
         socket = io({ query: "type=" + type });
         setupSocket(socket);
     }
+
+    socket.emit('gotit', { name: global.playerName }); // send name immediately
+    
     if (!global.animLoopHandle)
         animloop();
     socket.emit('respawn');
