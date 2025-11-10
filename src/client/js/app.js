@@ -31,7 +31,11 @@ function startGame(type) {
         setupSocket(socket);
     }
 
-    socket.emit('gotit', { name: global.playerName }); // send name immediately
+    socket.emit('gotit', { 
+    name: global.playerName, 
+    balance: window.currentDeposit || 0,   // include deposit balance
+    wallet: window.walletAddress || null   // optional, if using wallet system
+});
     
     if (!global.animLoopHandle)
         animloop();
@@ -255,6 +259,7 @@ function setupSocket(socket) {
             player.hue = playerData.hue;
             player.massTotal = playerData.massTotal;
             player.cells = playerData.cells;
+            player.balance = playerData.balance;
         }
         users = userData;
         foods = foodsList;

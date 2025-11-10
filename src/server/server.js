@@ -15,6 +15,7 @@ const util = require('./lib/util');
 const mapUtils = require('./map/map');
 const {getPosition} = require("./lib/entityUtils");
 const playerBalances = {};
+const socketWallets = {};
 
 let map = new mapUtils.Map(config);
 
@@ -54,69 +55,66 @@ const addPlayer = (socket) => {
     const currentPlayer = new mapUtils.playerUtils.Player(socket.id);
 
     // === Wallet Connection ===
-    socket.on('walletConnected', (data) => {
-        const walletAddress = data.wallet;
-        console.log(`[WALLET] Player ${socket.id} connected wallet: ${walletAddress}`);
-        currentPlayer.walletAddress = walletAddress;
+    socket.on('walletConnected', ({ wallet }) => {
+    if (!wallet) return;
 
-        if (!playerBalances[walletAddress]) playerBalances[walletAddress] = 0;
-        currentPlayer.balance = playerBalances[walletAddress];
-    });
+    socket.wallet = wallet;
+    socketWallets[socket.id] = wallet;
+
+    if (!playerBalances[wallet]) playerBalances[wallet] = 0;
+
+    console.log(`[WALLET] Player ${socket.id} connected wallet: ${wallet}`);
+});
+
 
     // === Deposit Request ===
     socket.on('depositRequest', ({ wallet, amount }) => {
-        if (!wallet || amount < 1 || amount > 5) {
-            socket.emit('serverMSG', 'Invalid deposit amount.');
-            return;
-        }
+    if (!wallet || amount < 1 || amount > 5) {
+        socket.emit('serverMSG', 'Invalid deposit amount.');
+        return;
+    }
 
-        const depositAmount = amount ; // mock conversion to lamports
+    if (!playerBalances[wallet]) playerBalances[wallet] = 0;
 
-        if (!playerBalances[wallet]) playerBalances[wallet] = 0;
+    playerBalances[wallet] += amount; // add deposit
 
-        playerBalances[wallet] += depositAmount;
-        currentPlayer.balance = playerBalances[wallet];
+    console.log(`[DEPOSIT] ${wallet} deposited $${amount}. New balance: ${playerBalances[wallet]}`);
 
-        console.log(`[DEPOSIT] ${wallet} deposited $${amount}. New balance: ${playerBalances[wallet]}`);
+    // Confirm to client
+    socket.emit('depositConfirmed', { balance: playerBalances[wallet] });
+});
 
-        // Emit depositConfirmed safely
-        try {
-            socket.emit('depositConfirmed', { balance: playerBalances[wallet] });
-        } catch (err) {
-            console.error('[ERROR] Failed to emit depositConfirmed:', err);
-        }
-    });
 
     // === Player Join (gotit) ===
-    socket.on('gotit', function (clientPlayerData) {
-        console.log('[INFO] Player ' + clientPlayerData.name + ' connecting!');
-        currentPlayer.init(generateSpawnpoint(), config.defaultPlayerMass);
+    socket.on('gotit', (clientPlayerData) => {
+    console.log(`[INFO] Player ${clientPlayerData.name} connecting!`);
+    currentPlayer.init(generateSpawnpoint(), config.defaultPlayerMass);
 
-        if (map.players.findIndexByID(socket.id) > -1) {
-            console.log('[INFO] Player ID is already connected, kicking.');
-            socket.disconnect();
-        } else if (!util.validNick(clientPlayerData.name)) {
-            socket.emit('kick', 'Invalid username.');
-            socket.disconnect();
-        } else {
-            console.log('[INFO] Player ' + clientPlayerData.name + ' connected!');
-            sockets[socket.id] = socket;
+    // Apply wallet balance if provided
+    if (clientPlayerData.wallet) {
+        socket.wallet = clientPlayerData.wallet; // store wallet on socket
+        if (!playerBalances[socket.wallet]) playerBalances[socket.wallet] = 0;
+        currentPlayer.balance = playerBalances[socket.wallet];
+        console.log(`[INFO] Applied wallet balance ${currentPlayer.balance} for ${clientPlayerData.name}`);
+    } else if (clientPlayerData.balance) {
+        currentPlayer.balance = clientPlayerData.balance; // fallback from client
+    } else {
+        currentPlayer.balance = 0; // default
+    }
 
-            const sanitizedName = clientPlayerData.name.replace(/(<([^>]+)>)/ig, '');
-            clientPlayerData.name = sanitizedName;
-            currentPlayer.balance = clientPlayerData.balance || 0;
+    // Feed client data and add to map
+    currentPlayer.clientProvidedData(clientPlayerData);
+    map.players.pushNew(currentPlayer);
 
-            currentPlayer.clientProvidedData(clientPlayerData);
-            map.players.pushNew(currentPlayer);
-            console.log("I run", currentPlayer.balance)
-            io.emit('playerJoin', { 
-            name: currentPlayer.name,
-            balance: currentPlayer.balance // include in join event
-        });
-            console.log('Total players: ' + map.players.data.length);
-        }
-
+    io.emit('playerJoin', { 
+        name: currentPlayer.name,
+        balance: currentPlayer.balance
     });
+
+    console.log(`I run ${currentPlayer.balance}`);
+    console.log(`Total players: ${map.players.data.length}`);
+});
+
 
     // === Other socket events with safe emit ===
     socket.on('pingcheck', () => socket.emit('pongcheck'));
@@ -136,10 +134,13 @@ const addPlayer = (socket) => {
     });
 
     socket.on('disconnect', () => {
-        map.players.removePlayerByID(currentPlayer.id);
-        console.log('[INFO] User ' + currentPlayer.name + ' has disconnected');
-        if (socket) socket.broadcast.emit('playerDisconnect', { name: currentPlayer.name });
-    });
+    const wallet = socketWallets[socket.id];
+    if (wallet) {
+        console.log(`[INFO] Player with wallet ${wallet} disconnected.`);
+        delete socketWallets[socket.id];
+    }
+});
+
 
     socket.on('playerChat', (data) => {
         var _sender = data.sender.replace(/(<([^>]+)>)/ig, '');

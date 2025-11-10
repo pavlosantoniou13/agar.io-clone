@@ -91,6 +91,8 @@ exports.Player = class {
         this.screenWidth = null;
         this.screenHeight = null;
         this.timeToMerge = null;
+        this.balance = 0;
+        this.walletAddress = null;
         this.setLastHeartbeat();
     }
 
