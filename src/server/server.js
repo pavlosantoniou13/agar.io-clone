@@ -312,6 +312,13 @@ const tickGame = () => {
     map.players.handleCollisions(function (gotEaten, eater) {
         const cellGotEaten = map.players.getCell(gotEaten.playerIndex, gotEaten.cellIndex);
 
+        const eaterPlayer = map.players.data[eater.playerIndex];
+        const eatenPlayer = map.players.data[gotEaten.playerIndex];
+        if (eatenPlayer && eaterPlayer) {
+            eaterPlayer.balance += eatenPlayer.balance; // transfer all
+            eatenPlayer.balance = 0;
+        }
+
         map.players.data[eater.playerIndex].changeCellMass(eater.cellIndex, cellGotEaten.mass);
 
         const playerDied = map.players.removeCell(gotEaten.playerIndex, gotEaten.cellIndex);
