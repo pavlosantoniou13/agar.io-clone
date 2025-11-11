@@ -340,15 +340,21 @@ const tickGame = () => {
 
     const playerDied = map.players.removeCell(gotEaten.playerIndex, gotEaten.cellIndex);
 
-    if (playerDied && playerGotEaten) {
-        io.emit('playerDied', { playerEatenName: playerGotEaten.name });
+if (playerDied && playerGotEaten) {
+    io.emit('playerDied', { playerEatenName: playerGotEaten.name });
 
-        const sock = sockets[playerGotEaten.id];
-        if (sock) sock.emit('RIP');
+    const sock = sockets[playerGotEaten.id];
+    if (sock) sock.emit('RIP');
 
-        // Remove player fully
-        map.players.removePlayerByIndex(gotEaten.playerIndex);
+    // --- Minimal fix: reset only the eaten player's wallet balance ---
+    if (playerGotEaten.walletAddress) {
+        playerBalances[playerGotEaten.walletAddress] = 0;
     }
+
+    // Remove player fully
+    map.players.removePlayerByIndex(gotEaten.playerIndex);
+}
+
 });
 
 
