@@ -104,6 +104,7 @@ const addPlayer = (socket) => {
     // Apply wallet balance if provided
     if (clientPlayerData.wallet) {
         socket.wallet = clientPlayerData.wallet; // store wallet on socket
+        currentPlayer.walletAddress = clientPlayerData.wallet; // <--- assign it
         if (!playerBalances[socket.wallet]) playerBalances[socket.wallet] = 0;
         currentPlayer.balance = playerBalances[socket.wallet];
         console.log(`[INFO] Applied wallet balance ${currentPlayer.balance} for ${clientPlayerData.name}`);
