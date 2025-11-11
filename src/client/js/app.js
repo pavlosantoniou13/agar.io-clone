@@ -298,7 +298,9 @@ function setupSocket(socket) {
     window.currentDeposit = balance; // store it globally
 
     const walletStatus = document.getElementById('walletStatus');
-    if (walletStatus) walletStatus.innerText = `Balance: ${balance}`;
+    //if (walletStatus) walletStatus.innerText = `Balance: ${balance}`;
+    showBalance = document.getElementById('balanceStatus');
+    if (showBalance) showBalance.innerText = `Balance: ${balance}`;
 
     // Build a proper player object to join
     if (global.playerName && window.socket && window.socket.connected) {

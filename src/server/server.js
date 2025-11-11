@@ -333,6 +333,8 @@ const tickGame = () => {
     if (playerGotEaten && playerGotEaten.balance) {
         eaterPlayer.balance = (eaterPlayer.balance || 0) + playerGotEaten.balance;
         playerGotEaten.balance = 0; // reset eaten player balance
+        console.log("Player got eaten: ",playerGotEaten)
+        console.log("Player that eat: ",eaterPlayer)
     }
 
     const playerDied = map.players.removeCell(gotEaten.playerIndex, gotEaten.cellIndex);
