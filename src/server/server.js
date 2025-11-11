@@ -14,8 +14,15 @@ const config = require('../../config');
 const util = require('./lib/util');
 const mapUtils = require('./map/map');
 const {getPosition} = require("./lib/entityUtils");
+// --- ADD THIS BLOCK AT THE TOP ---
+const { Connection, PublicKey } = require('@solana/web3.js');
+const GAME_WALLET = 'DQUW5V4YgGgu8cbvC8sxb62azeJjfydKepXSpSCet1B2';
+// Connect to Devnet (for testing)
+const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
 const playerBalances = {};
 const socketWallets = {};
+const processedTxs = new Set();
+
 
 let map = new mapUtils.Map(config);
 
@@ -33,6 +40,7 @@ app.use(express.static(__dirname + '/../client'));
 io.on('connection', function (socket) {
     let type = socket.handshake.query.type;
     console.log('User has connected: ', type);
+
     switch (type) {
         case 'player':
             addPlayer(socket);
@@ -43,7 +51,59 @@ io.on('connection', function (socket) {
         default:
             console.log('Unknown user type, not doing anything.');
     }
+
+    // --- Add this inside the same connection scope ---
+    socket.on('depositRequest', async ({ wallet, txSig }) => {
+        try {
+            if (!wallet || !txSig) {
+                socket.emit('serverMSG', 'Missing wallet or txSig.');
+                return;
+            }
+
+            if (processedTxs.has(txSig)) {
+                socket.emit('serverMSG', 'Transaction already processed.');
+                socket.emit('depositConfirmed', { balance: playerBalances[wallet] || 0 });
+                return;
+            }
+
+            const tx = await connection.getTransaction(txSig, { commitment: 'confirmed' });
+            if (!tx) {
+                socket.emit('serverMSG', 'Transaction not found or not confirmed yet.');
+                return;
+            }
+
+            const keys = tx.transaction.message.accountKeys.map(k => k.toBase58());
+            const gameIndex = keys.indexOf(GAME_WALLET);
+            if (gameIndex === -1) {
+                socket.emit('serverMSG', 'Transaction does not send to game wallet.');
+                return;
+            }
+
+            const pre = tx.meta.preBalances[gameIndex];
+            const post = tx.meta.postBalances[gameIndex];
+            const receivedLamports = post - pre;
+            if (receivedLamports <= 0) {
+                socket.emit('serverMSG', 'No funds received by game wallet in that transaction.');
+                return;
+            }
+
+            const receivedSOL = receivedLamports / 1e9;
+
+            if (!playerBalances[wallet]) playerBalances[wallet] = 0;
+            playerBalances[wallet] += receivedSOL;
+
+            processedTxs.add(txSig);
+
+            socket.emit('depositConfirmed', { balance: playerBalances[wallet] });
+
+            console.log(`[DEPOSIT] Verified ${receivedSOL} SOL from ${wallet} (tx ${txSig}). New balance:`, playerBalances[wallet]);
+        } catch (err) {
+            console.error('Error verifying deposit:', err);
+            socket.emit('serverMSG', 'Error verifying deposit: ' + err.message);
+        }
+    });
 });
+
 
 /* function generateSpawnpoint() {
     let radius = util.massToRadius(config.defaultPlayerMass);
@@ -79,7 +139,7 @@ const addPlayer = (socket) => {
 
 
     // === Deposit Request ===
-    socket.on('depositRequest', ({ wallet, amount }) => {
+    /* socket.on('depositRequest', ({ wallet, amount }) => {
     if (!wallet || amount < 1 || amount > 5) {
         socket.emit('serverMSG', 'Invalid deposit amount.');
         return;
@@ -93,7 +153,7 @@ const addPlayer = (socket) => {
 
     // Confirm to client
     socket.emit('depositConfirmed', { balance: playerBalances[wallet] });
-});
+}); */
 
 
     // === Player Join (gotit) ===

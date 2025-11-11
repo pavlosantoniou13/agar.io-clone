@@ -473,8 +473,63 @@ window.connectWallet = async function () {
     }
 };
 
+window.sendDeposit = async function () {
+    const amountSOL = parseFloat(document.getElementById('depositAmount').value);
+    if (isNaN(amountSOL) || amountSOL <= 0) {
+        alert("Enter a valid amount to deposit.");
+        return;
+    }
 
-window.deposit = function () {
+    if (!window.walletAddress) {
+        alert("Connect your wallet first.");
+        return;
+    }
+
+    const GAME_WALLET = 'DQUW5V4YgGgu8cbvC8sxb62azeJjfydKepXSpSCet1B2'; // same as server
+
+
+    try {
+        const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('devnet'), 'confirmed');
+const fromPubkey = window.solana.publicKey;
+const toPubkey = new solanaWeb3.PublicKey(GAME_WALLET);
+const lamports = amountSOL * solanaWeb3.LAMPORTS_PER_SOL;
+
+// 1. Create a transfer instruction
+const instruction = solanaWeb3.SystemProgram.transfer({
+  fromPubkey,
+  toPubkey,
+  lamports
+});
+
+// 2. Build a transaction
+const transaction = new solanaWeb3.Transaction().add(instruction);
+
+// 3. Get a recent blockhash
+transaction.recentBlockhash = (await connection.getRecentBlockhash()).blockhash;
+transaction.feePayer = fromPubkey;
+
+// 4. Send the transaction to Phantom
+const signedTx = await window.solana.signTransaction(transaction);
+const txid = await connection.sendRawTransaction(signedTx.serialize());
+await connection.confirmTransaction(txid, 'confirmed');
+
+console.log("Deposit tx sent:", txid);
+window.socket.emit('depositRequest', {
+  wallet: window.walletAddress,
+  txSig: txid
+});
+
+
+    } catch (err) {
+        console.error("Deposit failed:", err);
+        alert("Deposit failed: " + err.message);
+    }
+};
+
+
+
+
+/* window.deposit = function () {
     const amount = parseInt(document.getElementById('depositAmount').value);
     if (isNaN(amount) || amount < 1 || amount > 5) {
         alert("Please enter a valid amount between 1 and 5.");
@@ -490,7 +545,7 @@ window.deposit = function () {
         alert("Connect your wallet first.");
         console.log("Wallet address at deposit:", window.walletAddress);
     }
-};
+}; */
 
 window.simulateDeposit = function () {
     const amount = Number(document.getElementById('depositAmountSim').value);
