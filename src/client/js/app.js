@@ -269,17 +269,32 @@ function setupSocket(socket) {
 
     // Death.
     socket.on('RIP', function () {
-        global.gameStart = false;
-        render.drawErrorMessage('You died!', graph, global.screen);
-        window.setTimeout(() => {
-            document.getElementById('gameAreaWrapper').style.opacity = 0;
-            document.getElementById('startMenuWrapper').style.maxHeight = '1000px';
-            if (global.animLoopHandle) {
-                window.cancelAnimationFrame(global.animLoopHandle);
-                global.animLoopHandle = undefined;
-            }
-        }, 2500);
-    });
+    global.gameStart = false;
+    render.drawErrorMessage('You died!', graph, global.screen);
+
+    // --- Minimal reset of all player data ---
+    window.currentDeposit = 0;
+    window.walletAddress = null;
+    global.player = null;
+    global.playerName = ''; // reset name so startMenu doesn't reuse old data
+
+    const showBalance = document.getElementById('balanceStatus');
+    if (showBalance) showBalance.innerText = `Balance: 0`;
+
+    const walletStatus = document.getElementById('walletStatus');
+    if (walletStatus) walletStatus.innerText = `Wallet: Not connected`;
+
+    window.setTimeout(() => {
+        document.getElementById('gameAreaWrapper').style.opacity = 0;
+        document.getElementById('startMenuWrapper').style.maxHeight = '1000px';
+
+        if (global.animLoopHandle) {
+            window.cancelAnimationFrame(global.animLoopHandle);
+            global.animLoopHandle = undefined;
+        }
+    }, 2500);
+});
+
 
     socket.on('kick', function (reason) {
         global.gameStart = false;
