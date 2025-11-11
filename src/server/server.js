@@ -45,11 +45,22 @@ io.on('connection', function (socket) {
     }
 });
 
-function generateSpawnpoint() {
+/* function generateSpawnpoint() {
     let radius = util.massToRadius(config.defaultPlayerMass);
     return getPosition(config.newPlayerInitialPosition === 'farthest', radius, map.players.data)
-}
+} */
+function generateSpawnpoint() {
+    // Test mode: spawn everyone near the center (or random cluster)
+    const clusterCenterX = config.gameWidth / 2;
+    const clusterCenterY = config.gameHeight / 2;
 
+    // Small random offset so they don’t spawn inside each other exactly
+    const offset = 100; // smaller = closer together
+    const x = clusterCenterX + (Math.random() * offset - offset / 2);
+    const y = clusterCenterY + (Math.random() * offset - offset / 2);
+
+    return { x, y };
+}
 
 const addPlayer = (socket) => {
     const currentPlayer = new mapUtils.playerUtils.Player(socket.id);
@@ -310,25 +321,34 @@ const tickGame = () => {
     map.massFood.move(config.gameWidth, config.gameHeight);
 
     map.players.handleCollisions(function (gotEaten, eater) {
-        const cellGotEaten = map.players.getCell(gotEaten.playerIndex, gotEaten.cellIndex);
+    const cellGotEaten = map.players.getCell(gotEaten.playerIndex, gotEaten.cellIndex);
 
-        const eaterPlayer = map.players.data[eater.playerIndex];
-        const eatenPlayer = map.players.data[gotEaten.playerIndex];
-        if (eatenPlayer && eaterPlayer) {
-            eaterPlayer.balance += eatenPlayer.balance; // transfer all
-            eatenPlayer.balance = 0;
-        }
+    const eaterPlayer = map.players.data[eater.playerIndex];
+    const playerGotEaten = map.players.data[gotEaten.playerIndex];
 
-        map.players.data[eater.playerIndex].changeCellMass(eater.cellIndex, cellGotEaten.mass);
+    // Transfer mass to eater
+    eaterPlayer.changeCellMass(eater.cellIndex, cellGotEaten.mass);
 
-        const playerDied = map.players.removeCell(gotEaten.playerIndex, gotEaten.cellIndex);
-        if (playerDied) {
-            let playerGotEaten = map.players.data[gotEaten.playerIndex];
-            io.emit('playerDied', { name: playerGotEaten.name }); //TODO: on client it is `playerEatenName` instead of `name`
-            sockets[playerGotEaten.id].emit('RIP');
-            map.players.removePlayerByIndex(gotEaten.playerIndex);
-        }
-    });
+    // Transfer balance if exists
+    if (playerGotEaten && playerGotEaten.balance) {
+        eaterPlayer.balance = (eaterPlayer.balance || 0) + playerGotEaten.balance;
+        playerGotEaten.balance = 0; // reset eaten player balance
+    }
+
+    const playerDied = map.players.removeCell(gotEaten.playerIndex, gotEaten.cellIndex);
+
+    if (playerDied && playerGotEaten) {
+        io.emit('playerDied', { playerEatenName: playerGotEaten.name });
+
+        const sock = sockets[playerGotEaten.id];
+        if (sock) sock.emit('RIP');
+
+        // Remove player fully
+        map.players.removePlayerByIndex(gotEaten.playerIndex);
+    }
+});
+
+
 
 };
 
