@@ -534,6 +534,39 @@ window.socket.emit('depositRequest', {
     }
 };
 
+// Called when user clicks the in-game Cashout button
+window.sendCashout = function () {
+    if (!window.walletAddress) {
+        alert('Connect wallet first.');
+        return;
+    }
+    // disable button while request is processed
+    const btn = document.getElementById('cashoutBtn');
+    if (btn) btn.disabled = true;
+
+    window.socket.emit('cashoutRequest', { wallet: window.walletAddress });
+};
+
+// Listen for confirmation from server
+window.socket.on('cashoutConfirmed', ({ balance, txSig }) => {
+    console.log('Cashout confirmed:', txSig);
+    window.currentDeposit = balance || 0;
+    const showBalance = document.getElementById('balanceStatus');
+    if (showBalance) showBalance.innerText = `Balance: ${window.currentDeposit}`;
+
+    const btn = document.getElementById('cashoutBtn');
+    if (btn) btn.disabled = (window.currentDeposit <= 0);
+    alert('Cashout sent! Tx: ' + txSig);
+});
+
+// Optional: server messages (errors, logs)
+window.socket.on('serverMSG', (msg) => {
+    window.chat.addSystemLine(msg);
+    const btn = document.getElementById('cashoutBtn');
+    if (btn) btn.disabled = (window.currentDeposit <= 0);
+});
+
+
 
 
 

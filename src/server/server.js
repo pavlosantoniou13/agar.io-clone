@@ -6,6 +6,8 @@ const app = express();
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
 const SAT = require('sat');
+const fs = require('fs');
+const path = require('path');
 
 const gameLogic = require('./game-logic');
 const loggingRepositry = require('./repositories/logging-repository');
@@ -15,8 +17,15 @@ const util = require('./lib/util');
 const mapUtils = require('./map/map');
 const {getPosition} = require("./lib/entityUtils");
 // --- ADD THIS BLOCK AT THE TOP ---
-const { Connection, PublicKey } = require('@solana/web3.js');
+const { Connection, PublicKey, Keypair, SystemProgram, Transaction } = require('@solana/web3.js');
+
 const GAME_WALLET = 'DQUW5V4YgGgu8cbvC8sxb62azeJjfydKepXSpSCet1B2';
+
+const GAME_WALLET_SENDER = Keypair.fromSecretKey(
+    Uint8Array.from(JSON.parse(fs.readFileSync('C:/Users/palvo/Documents/solana/id.json')))
+);
+
+
 // Connect to Devnet (for testing)
 const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
 const playerBalances = {};
@@ -102,6 +111,52 @@ io.on('connection', function (socket) {
             socket.emit('serverMSG', 'Error verifying deposit: ' + err.message);
         }
     });
+
+    // === Cashout Request ===
+socket.on('cashoutRequest', async ({ wallet }) => {
+    try {
+        if (!wallet || !playerBalances[wallet] || playerBalances[wallet] <= 0) {
+            socket.emit('serverMSG', 'No balance to cash out.');
+            return;
+        }
+
+        const amountSOL = playerBalances[wallet];
+        const toPubkey = new PublicKey(wallet);
+        const lamports = amountSOL * 1e9;
+
+        // Build transaction
+       const transaction = new Transaction().add(
+        SystemProgram.transfer({
+            fromPubkey: GAME_WALLET_SENDER.publicKey, // ✅ publicKey, not Keypair
+            toPubkey: new PublicKey(wallet),
+            lamports
+    })
+);
+
+        const { blockhash } = await connection.getLatestBlockhash('finalized');
+        transaction.recentBlockhash = blockhash;
+        transaction.feePayer = GAME_WALLET_SENDER.publicKey;
+ // ✅ also .publicKey
+
+        // Sign the transaction with the keypair
+        transaction.sign(GAME_WALLET_SENDER); // ✅ just use the keypair
+
+        // Send and confirm
+        const txid = await connection.sendTransaction(transaction, [GAME_WALLET_SENDER]);
+        await connection.confirmTransaction(txid, 'confirmed');
+
+
+        // Reset player balance
+        playerBalances[wallet] = 0;
+
+        socket.emit('cashoutConfirmed', { balance: 0, txSig: txid });
+        console.log(`[CASHOUT] Sent ${amountSOL} SOL to ${wallet}. Tx: ${txid}`);
+    } catch (err) {
+        console.error('Error during cashout:', err);
+        socket.emit('serverMSG', 'Cashout failed: ' + err.message);
+    }
+});
+
 });
 
 
