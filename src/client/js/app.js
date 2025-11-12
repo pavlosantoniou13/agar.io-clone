@@ -284,6 +284,9 @@ function setupSocket(socket) {
     const walletStatus = document.getElementById('walletStatus');
     if (walletStatus) walletStatus.innerText = `Wallet: Not connected`;
 
+    const startButton = document.getElementById('startButton');
+    if (startButton) startButton.disabled = true;
+
     window.setTimeout(() => {
         document.getElementById('gameAreaWrapper').style.opacity = 0;
         document.getElementById('startMenuWrapper').style.maxHeight = '1000px';
@@ -316,6 +319,11 @@ function setupSocket(socket) {
     //if (walletStatus) walletStatus.innerText = `Balance: ${balance}`;
     showBalance = document.getElementById('balanceStatus');
     if (showBalance) showBalance.innerText = `Balance: ${balance}`;
+
+    const startButton = document.getElementById('startButton');
+    if (balance > 0 && startButton) {
+        startButton.disabled = false;
+    }
 
     // Build a proper player object to join
     if (global.playerName && window.socket && window.socket.connected) {

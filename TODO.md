@@ -1,2 +1,3 @@
 ### TODOs
-Crypto wallet connection
+Cashout
+Transcaction confirmation
