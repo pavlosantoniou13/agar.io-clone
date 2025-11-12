@@ -1,3 +1,2 @@
 ### TODOs
-Cashout
 Transcaction confirmation

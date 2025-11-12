@@ -115,14 +115,16 @@ io.on('connection', function (socket) {
     // === Cashout Request ===
 socket.on('cashoutRequest', async ({ wallet }) => {
     try {
+        const playerCashout = map.players.data.find(p => p.walletAddress === wallet);
         if (!wallet || !playerBalances[wallet] || playerBalances[wallet] <= 0) {
             socket.emit('serverMSG', 'No balance to cash out.');
             return;
         }
 
-        const amountSOL = playerBalances[wallet];
+
+        const amountSOL = playerCashout.balance;
         const toPubkey = new PublicKey(wallet);
-        const lamports = amountSOL * 1e9;
+        const lamports = Math.floor(amountSOL * 1e9); 
 
         // Build transaction
        const transaction = new Transaction().add(
@@ -148,6 +150,15 @@ socket.on('cashoutRequest', async ({ wallet }) => {
 
         // Reset player balance
         playerBalances[wallet] = 0;
+
+       // Find the socket and trigger RIP-like flow
+const player = map.players.data.find(p => p.walletAddress === wallet);
+if (player) {
+    const sock = sockets[player.id];
+    if (sock) sock.emit('RIP');  // same as player death
+    // Remove player from map
+    map.players.removePlayerByIndex(map.players.data.indexOf(player));
+}
 
         socket.emit('cashoutConfirmed', { balance: 0, txSig: txid });
         console.log(`[CASHOUT] Sent ${amountSOL} SOL to ${wallet}. Tx: ${txid}`);
