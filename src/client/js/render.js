@@ -102,7 +102,7 @@ const drawCells = (cells, playerConfig, toggleMassState, borders, graph) => {
         //graph.fillText(cell.name, cell.x, cell.y);
         let displayText = cell.name;
         
-        displayText += ` ($${cell.balance.toFixed(2)})`; // append deposited balance
+        displayText += ` ($${cell.displayBalance.toFixed(2)})`; // append deposited balance
         
         graph.fillStyle = '#FFFFFF'; // or playerConfig.textColor
         graph.strokeStyle = '#000000'; // or playerConfig.textBorder

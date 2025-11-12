@@ -93,6 +93,7 @@ exports.Player = class {
         this.timeToMerge = null;
         this.balance = 0;
         this.walletAddress = null;
+        this.displayBalance = 0;
         this.setLastHeartbeat();
     }
 
