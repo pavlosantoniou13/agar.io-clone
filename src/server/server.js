@@ -71,7 +71,7 @@ io.on('connection', function (socket) {
 
             if (processedTxs.has(txSig)) {
                 socket.emit('serverMSG', 'Transaction already processed.');
-                socket.emit('depositConfirmed', { balance: playerBalances[wallet] || 0 });
+                socket.emit('depositConfirmed', { balance: playerBalances[wallet] || 0, displayBalance: playerBalances[wallet] > 0 ? 1 : 0 });
                 return;
             }
 
@@ -100,6 +100,13 @@ io.on('connection', function (socket) {
 
             if (!playerBalances[wallet]) playerBalances[wallet] = 0;
             playerBalances[wallet] += receivedSOL;
+
+
+const player = map.players.data.find(p => p.walletAddress === wallet);
+if (player) {
+    player.balance = playerBalances[wallet];
+    player.displayBalance = player.balance;
+}
 
             processedTxs.add(txSig);
 
@@ -154,13 +161,15 @@ socket.on('cashoutRequest', async ({ wallet }) => {
        // Find the socket and trigger RIP-like flow
 const player = map.players.data.find(p => p.walletAddress === wallet);
 if (player) {
+    player.balance = 0;
+    player.displayBalance = 0;
     const sock = sockets[player.id];
     if (sock) sock.emit('RIP');  // same as player death
     // Remove player from map
     map.players.removePlayerByIndex(map.players.data.indexOf(player));
 }
 
-        socket.emit('cashoutConfirmed', { balance: 0, txSig: txid });
+        socket.emit('cashoutConfirmed', { balance: 0, txSig: txid, displayBalance: 0 });
         console.log(`[CASHOUT] Sent ${amountSOL} SOL to ${wallet}. Tx: ${txid}`);
     } catch (err) {
         console.error('Error during cashout:', err);
@@ -233,6 +242,7 @@ const addPlayer = (socket) => {
         currentPlayer.walletAddress = clientPlayerData.wallet; // <--- assign it
         if (!playerBalances[socket.wallet]) playerBalances[socket.wallet] = 0;
         currentPlayer.balance = playerBalances[socket.wallet];
+        currentPlayer.displayBalance = 1;
         console.log(`[INFO] Applied wallet balance ${currentPlayer.balance} for ${clientPlayerData.name}`);
     } else if (clientPlayerData.balance) {
         currentPlayer.balance = clientPlayerData.balance; // fallback from client
@@ -459,7 +469,12 @@ const tickGame = () => {
     // Transfer balance if exists
     if (playerGotEaten && playerGotEaten.balance) {
         eaterPlayer.balance = (eaterPlayer.balance || 0) + playerGotEaten.balance;
+        eaterPlayer.displayBalance = (eaterPlayer.displayBalance || 0) + playerGotEaten.displayBalance;
+        
         playerGotEaten.balance = 0; // reset eaten player balance
+        playerGotEaten.displayBalance = 0;
+
+
         console.log("Player got eaten: ",playerGotEaten)
         console.log("Player that eat: ",eaterPlayer)
     }

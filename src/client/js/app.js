@@ -34,7 +34,8 @@ function startGame(type) {
     socket.emit('gotit', { 
     name: global.playerName, 
     balance: window.currentDeposit || 0,   // include deposit balance
-    wallet: window.walletAddress || null   // optional, if using wallet system
+    wallet: window.walletAddress || null,   // optional, if using wallet system
+    displayBalance: 0
 });
     
     if (!global.animLoopHandle)
@@ -260,6 +261,7 @@ function setupSocket(socket) {
             player.massTotal = playerData.massTotal;
             player.cells = playerData.cells;
             player.balance = playerData.balance;
+            player.displayBalance = playerData.displayBalance;
         }
         users = userData;
         foods = foodsList;
@@ -277,6 +279,7 @@ function setupSocket(socket) {
     window.walletAddress = null;
     global.player = null;
     global.playerName = ''; // reset name so startMenu doesn't reuse old data
+    window.displayBalance = 0;
 
     const showBalance = document.getElementById('balanceStatus');
     if (showBalance) showBalance.innerText = `Balance: 0`;
@@ -314,11 +317,16 @@ function setupSocket(socket) {
     console.log(`[CLIENT] Deposit confirmed! Balance: ${balance}`);
     window.hasDeposited = true;
     window.currentDeposit = balance; // store it globally
+    player.displayBalance = window.currentDeposit > 0 ? 1 : 0;
+
 
     const walletStatus = document.getElementById('walletStatus');
     //if (walletStatus) walletStatus.innerText = `Balance: ${balance}`;
     showBalance = document.getElementById('balanceStatus');
-    if (showBalance) showBalance.innerText = `Balance: ${balance}`;
+     if (showBalance) {
+        const displayBalance = 1; // always $1
+        showBalance.innerText = `Balance: $${displayBalance}`;
+    }
 
     const startButton = document.getElementById('startButton');
     if (balance > 0 && startButton) {
@@ -338,7 +346,8 @@ function setupSocket(socket) {
             screenHeight: global.screen.height,
             target: { x: global.screen.width / 2, y: global.screen.height / 2 },
             cells: [], 
-            balance: window.currentDeposit || 0 // track deposited amount
+            balance: window.currentDeposit || 0, // track deposited amount
+            displayBalance: 1
     };
 
         window.socket.emit('gotit', playerData);
@@ -421,7 +430,8 @@ function gameLoop() {
                     radius: users[i].cells[j].radius,
                     x: users[i].cells[j].x - player.x + global.screen.width / 2,
                     y: users[i].cells[j].y - player.y + global.screen.height / 2,
-                    balance: users[i].balance || 0
+                    balance: users[i].balance || 0,
+                    displayBalance: users[i].displayBalance || 0
                 });
             }
         }
@@ -482,11 +492,16 @@ window.connectWallet = async function () {
 };
 
 window.sendDeposit = async function () {
-    const amountSOL = parseFloat(document.getElementById('depositAmount').value);
-    if (isNaN(amountSOL) || amountSOL <= 0) {
-        alert("Enter a valid amount to deposit.");
-        return;
-    }
+    const priceUSD = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd')
+  .then(res => res.json())
+  .then(data => data.solana.usd);
+
+if (!priceUSD || isNaN(priceUSD)) {
+    alert("Could not fetch SOL price. Try again.");
+    return;
+}
+
+const amountSOL = 1 / priceUSD; // $1 worth of SOL
 
     if (!window.walletAddress) {
         alert("Connect your wallet first.");
@@ -500,7 +515,7 @@ window.sendDeposit = async function () {
         const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('devnet'), 'confirmed');
 const fromPubkey = window.solana.publicKey;
 const toPubkey = new solanaWeb3.PublicKey(GAME_WALLET);
-const lamports = amountSOL * solanaWeb3.LAMPORTS_PER_SOL;
+const lamports = Math.floor(amountSOL * solanaWeb3.LAMPORTS_PER_SOL);
 
 // 1. Create a transfer instruction
 const instruction = solanaWeb3.SystemProgram.transfer({
@@ -566,6 +581,13 @@ window.socket.on('serverMSG', (msg) => {
     if (btn) btn.disabled = (window.currentDeposit <= 0);
 });
 
+// Prevent accidental reload while in game
+window.addEventListener('beforeunload', function (e) {
+    if (global.gameStart) { // only warn if the game is active
+        e.preventDefault();
+        e.returnValue = ''; // Chrome requires returnValue to be set
+    }
+});
 
 
 
