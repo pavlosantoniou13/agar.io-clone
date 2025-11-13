@@ -8,6 +8,8 @@ const io = require('socket.io')(http);
 const SAT = require('sat');
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config(); // Loads the .env file
+
 
 const gameLogic = require('./game-logic');
 const loggingRepositry = require('./repositories/logging-repository');
@@ -19,10 +21,10 @@ const {getPosition} = require("./lib/entityUtils");
 // --- ADD THIS BLOCK AT THE TOP ---
 const { Connection, PublicKey, Keypair, SystemProgram, Transaction } = require('@solana/web3.js');
 
-const GAME_WALLET = 'DQUW5V4YgGgu8cbvC8sxb62azeJjfydKepXSpSCet1B2';
+const GAME_WALLET = process.env.GAME_WALLET;
 
 const GAME_WALLET_SENDER = Keypair.fromSecretKey(
-    Uint8Array.from(JSON.parse(fs.readFileSync('C:/Users/palvo/Documents/solana/id.json')))
+    Uint8Array.from(JSON.parse(process.env.SOLANA_SECRET))
 );
 
 
