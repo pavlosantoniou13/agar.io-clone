@@ -261,6 +261,7 @@ const addPlayer = (socket) => {
 
     console.log(`I run ${currentPlayer.balance}`);
     console.log(`Total players: ${map.players.data.length}`);
+
 });
 
 
@@ -550,6 +551,8 @@ const sendUpdates = () => {
     });
 
     leaderboardChanged = false;
+    io.emit('updatePlayerCount', map.players.data.length);
+
 };
 
 const sendLeaderboard = (socket) => {

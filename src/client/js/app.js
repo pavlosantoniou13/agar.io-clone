@@ -301,6 +301,10 @@ function setupSocket(socket) {
     }, 2500);
 });
 
+socket.on('updatePlayerCount', (count) => {
+    const display = document.getElementById('playerCountDisplay');
+    if (display) display.innerText = `Players online: ${count}`;
+});
 
     socket.on('kick', function (reason) {
         global.gameStart = false;
