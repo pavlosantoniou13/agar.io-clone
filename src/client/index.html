@@ -73,8 +73,8 @@
             <b class="input-error">Nick must be alphanumeric characters only!</b>
             <br />
             <button id="startButton" disabled onclick="document.getElementById('spawn_cell').play();">Play</button>
-            <button id="spectateButton">Spectate</button>
-            <button id="settingsButton">Settings</button>
+            <button id="spectateButton" disabled >Spectate</button>
+            <button id="settingsButton" disabled>Settings</button>
             <br />
             <div id="settings">
                 <h3>Settings</h3>
@@ -89,15 +89,47 @@
                 </ul>
             </div>
             <div id="instructions">
-                <h3 class="info-title">Information</h3>
+                <h3 class="info-title"></h3>
                 <div class="gameDescription">
-                <ul>
-                    <li>Step 1: Connect your phantom wallet</li>
-                    <li>Step 2: Add 1$ worth of solana for your stake!</li>
-                    <li>Step 3: Eat everyone and make money while doing it!</li>
-                </ul>
+                <!-- Info Button -->
+<button id="infoBtn">How do i play?</button>
+
+<!-- Info Modal -->
+<div id="infoBox">
+    <div id="infoContent">
+        <span id="closeInfo">&times;</span>
+        <h3 class="info-title">Information</h3>
+        <div class="gameDescription">
+            <ul>
+                <li>Step 1: Connect your Phantom wallet</li>
+                <li>Step 2: Add $1 worth of Solana for your stake</li>
+                <li>Step 3: Eat everyone and make money while doing it!</li>
+                <li>Step 4: Press Q to Cashout!</li>
+            </ul>
+        </div>
+    </div>
+</div>
             </div>
             </div>
+            <div id="links">
+        <h3>Where to find us</h3>
+       <div class="link-buttons">
+    <div class="link-box">
+        <a href="https://discord.com" target="_blank">
+            <img src="images/discord.png" alt="Discord">
+        </a>
+    </div>
+    <div class="link-box">
+        <a href="https://t.me/yourchannel" target="_blank">
+            <img src="images/telegram.png" alt="Telegram">
+        </a>
+    </div>
+    <div class="link-box">
+        <a href="https://twitter.com/yourhandle" target="_blank">
+            <img src="images/twitter.png" alt="Twitter">
+        </a>
+    </div>
+</div>
         </div>
     </div>
     <!-- JS -->

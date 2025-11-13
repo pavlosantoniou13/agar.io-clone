@@ -67,8 +67,8 @@ div {
 
 .chatbox {
     position: absolute;
-    width: 300px;
-    height: 320px;
+    width: 240px;    
+    height: 220px; 
     background: rgba(22, 22, 22, 0.7);
     bottom: 5px;
     left: 5px;
@@ -81,13 +81,13 @@ div {
     margin: 0;
     list-style: none;
     box-sizing: border-box;
-    height: 285px;
+    height: 170px;
     overflow: hidden;
 }
 
 .chatbox .chat-list li {
-    padding: 2px;
-    margin: 3px;
+    padding: 6px;  
+    font-size: 13px;
 }
 
 .chatbox .chat-list li.me b {
@@ -250,7 +250,13 @@ div {
 }
 
 #startMenuWrapper {
-    z-index: 2;
+     z-index: 2;
+    height: 100vh;          /* full viewport height */
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    overflow: hidden;       /* hide default scroll */
+    padding-top: 50px; 
 }
 
 #gameAreaWrapper {
@@ -385,15 +391,25 @@ body {
 
 /* Start Menu */
 #startMenu {
-  width: 420px;
-  margin: 100px auto;
-  padding: 25px;
-  border-radius: 20px;
-  background: rgba(255,255,255,0.05);
-  backdrop-filter: blur(15px);
-  border: 1px solid rgba(255,255,255,0.1);
-  box-shadow: 0 0 25px rgba(138,92,255,0.15);
-  text-align: center;
+    width: 420px;
+    max-height: 80vh;       /* max height before scroll */
+    overflow-y: auto;       /* allow vertical scrolling */
+    padding: 25px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 0 25px rgba(138,92,255,0.15);
+    text-align: center
+}
+#startMenu::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+}
+
+#startMenu {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
 }
 #startMenu input,
 #startMenu button {
@@ -631,4 +647,26 @@ body {
     transform: translateY(-4px);
     background: rgba(142, 111, 255, 0.3);
     box-shadow: 0 0 20px rgba(142, 111, 255, 0.4);
+}
+#spectateButton,
+#settingsButton {
+    display: none; /* completely hides the buttons */
+}
+#links h3 {
+    font-size: 28px;        /* Bigger title */
+    font-weight: 700;
+    color: white;
+    text-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+    margin-bottom: 15px;
+}
+.chatbox .chat-list li {
+    color: #111 !important; /* almost black */
+}
+
+.chatbox .chat-list li b {
+    color: #000 !important; /* pure black for names */
+}
+
+.chatbox .chat-list li.system {
+    color: #222 !important;
 }

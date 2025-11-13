@@ -634,6 +634,29 @@ window.addEventListener('keyup', (e) => {
     }
 });
 
+ const infoBtn = document.getElementById('infoBtn');
+    const infoBox = document.getElementById('infoBox');
+    const closeInfo = document.getElementById('closeInfo');
+
+    if (infoBtn && infoBox && closeInfo) {
+        // Show modal when "Information" is clicked
+        infoBtn.addEventListener('click', () => {
+            infoBox.style.display = 'block';
+        });
+
+        // Close modal when "X" is clicked
+        closeInfo.addEventListener('click', () => {
+            infoBox.style.display = 'none';
+        });
+
+        // Close modal when clicking outside the popup
+        window.addEventListener('click', (e) => {
+            if (e.target === infoBox) {
+                infoBox.style.display = 'none';
+            }
+        });
+    }
+
 
 // Listen for confirmation from server
 window.socket.on('cashoutConfirmed', ({ balance, txSig }) => {
