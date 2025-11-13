@@ -13,7 +13,44 @@
 </head>
 <body>
     <div id="gameAreaWrapper">
-        <button id="cashoutBtn" onclick="sendCashout()" style="position:absolute; right:12px; top:12px; z-index:1000;">Cashout</button>
+<button id="cashoutBtn" style="position:absolute; right:12px; top:12px; z-index:1000;">Cashout</button>
+<svg id="cashoutLoader" width="40" height="40" style="
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%, -50%);
+    display:none;
+    z-index:1001;
+">
+    <circle
+        cx="20"
+        cy="20"
+        r="18"
+        stroke="#ccc"
+        stroke-width="4"
+        fill="none"
+    />
+    <circle
+        id="progressCircle"
+        cx="20"
+        cy="20"
+        r="18"
+        stroke="#8e6fff"
+        stroke-width="4"
+        fill="none"
+        stroke-dasharray="113.097" 
+        stroke-dashoffset="113.097"
+        stroke-linecap="round"
+        transform="rotate(-90 20 20)"
+    />
+</svg>
+
+<style>
+@keyframes spin {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+</style>
         <div id="status"><span class="title">Leaderboard</span></div>
         <div class="chatbox" id="chatbox">
             <ul id="chatList" class="chat-list"></ul>

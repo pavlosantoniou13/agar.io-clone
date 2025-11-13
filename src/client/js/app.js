@@ -562,6 +562,79 @@ window.sendCashout = function () {
     window.socket.emit('cashoutRequest', { wallet: window.walletAddress });
 };
 
+const cashoutBtn = document.getElementById('cashoutBtn');
+const loader = document.getElementById('cashoutLoader');
+const progressCircle = document.getElementById('progressCircle');
+const HOLD_TIME = 3000; // 3 seconds
+let holdStart = null;
+let animationFrame = null;
+
+function updateProgress() {
+    if (!holdStart) return;
+    const elapsed = Date.now() - holdStart;
+    const progress = Math.min(elapsed / HOLD_TIME, 1);
+    const offset = 113.097 * (1 - progress); // stroke-dashoffset
+    progressCircle.setAttribute('stroke-dashoffset', offset);
+
+    if (progress < 1) {
+        animationFrame = requestAnimationFrame(updateProgress);
+    } else {
+        triggerCashout();
+    }
+}
+
+function triggerCashout() {
+    window.sendCashout();
+    stopHold();
+}
+
+function startHold() {
+    holdStart = Date.now();
+    loader.style.display = 'block';
+    updateProgress();
+}
+
+function stopHold() {
+    loader.style.display = 'none';
+    holdStart = null;
+    if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+        animationFrame = null;
+    }
+    // reset progress
+    progressCircle.setAttribute('stroke-dashoffset', '113.097');
+}
+
+// Desktop events
+cashoutBtn.addEventListener('mousedown', startHold);
+cashoutBtn.addEventListener('mouseup', stopHold);
+cashoutBtn.addEventListener('mouseleave', stopHold);
+
+// Mobile events
+cashoutBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startHold(); });
+cashoutBtn.addEventListener('touchend', stopHold);
+cashoutBtn.addEventListener('touchcancel', stopHold);
+
+// --- Add this after your existing cashoutBtn mouse/touch events ---
+
+// Keyboard shortcut: Press and hold Q to cashout
+let qHeld = false;
+
+window.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 'q' && !qHeld) {
+        qHeld = true;
+        startHold();
+    }
+});
+
+window.addEventListener('keyup', (e) => {
+    if (e.key.toLowerCase() === 'q') {
+        qHeld = false;
+        stopHold();
+    }
+});
+
+
 // Listen for confirmation from server
 window.socket.on('cashoutConfirmed', ({ balance, txSig }) => {
     console.log('Cashout confirmed:', txSig);
