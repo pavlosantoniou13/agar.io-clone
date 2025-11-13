@@ -283,3 +283,230 @@ input [type="image"]:focus{
  outline: 1px solid transparent;
  border-style: none;
 }
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap');
+
+* {
+  font-family: 'Poppins', sans-serif;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: radial-gradient(circle at 20% 20%, #0a0a0f, #0b0b15, #0f0f1a);
+  color: #fff;
+}
+
+/* --- glowing header --- */
+.logo {
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #fff;
+  text-shadow: 0 0 15px #5ef2ff;
+}
+.logo span {
+  color: #8e6fff;
+  text-shadow: 0 0 20px #8e6fff;
+}
+
+/* --- game wrapper --- */
+#gameAreaWrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+/* Cashout Button */
+#cashoutBtn {
+  position: absolute;
+  right: 20px;
+  top: 20px;
+  background: linear-gradient(135deg, #5ef2ff, #8e6fff);
+  border: none;
+  color: white;
+  font-weight: 600;
+  padding: 12px 20px;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 0 10px #5ef2ff;
+  transition: all 0.3s ease;
+}
+#cashoutBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px #8e6fff;
+}
+
+/* Leaderboard */
+#status {
+  position: absolute;
+  right: 20px;
+  top: 90px;
+  padding: 15px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 15px rgba(138,92,255,0.2);
+}
+#status .title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #5ef2ff;
+}
+
+/* Chatbox */
+.chatbox {
+  position: absolute;
+  width: 300px;
+  height: 280px;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.chat-list {
+  list-style: none;
+  padding: 10px;
+  margin: 0;
+  height: 230px;
+  overflow-y: auto;
+}
+.chat-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  padding: 8px;
+  border-radius: 0 0 12px 12px;
+}
+
+/* Start Menu */
+#startMenu {
+  width: 420px;
+  margin: 100px auto;
+  padding: 25px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 0 25px rgba(138,92,255,0.15);
+  text-align: center;
+}
+#startMenu input,
+#startMenu button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+}
+
+/* Inputs */
+#startMenu input {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  transition: all 0.2s ease;
+}
+#startMenu input:focus {
+  background: rgba(255,255,255,0.15);
+  box-shadow: 0 0 10px #5ef2ff;
+}
+
+/* Buttons */
+#startMenu button {
+  background: linear-gradient(135deg, #5ef2ff, #8e6fff);
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+#startMenu button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px #8e6fff;
+}
+
+/* Settings */
+#settings {
+  margin-top: 15px;
+  font-size: 0.9rem;
+  text-align: left;
+  display: none;
+}
+#settings label {
+  display: block;
+  margin: 4px 0;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: #8e6fff;
+  border-radius: 10px;
+}
+#bettingLabel {
+    font-size: 24px;       /* big text */
+    font-weight: bold;
+    text-align: center;    /* center inside the box */
+    margin-top: 20px;
+    color: #ff00ff;        /* neon pink */
+    text-shadow: 0 0 5px #ff00ff, 0 0 15px #ff00ff, 0 0 25px #ff00ff;
+}
+#siteName {
+    font-family: 'Arial Black', sans-serif;  /* bold, strong font */
+    font-size: 36px;                         /* big size */
+    text-align: center;                       /* centered in the box */
+    color: #ff00ff;        /* neon pink */
+    text-shadow: 0 0 5px #ff00ff, 0 0 15px #ff00ff, 0 0 25px #ff00ff;                   /* glowing neon effect */
+    margin-bottom: 20px;                      /* space below the site name */
+}
+.gameDescription ul {
+    list-style: none;               /* remove default bullets */
+    padding: 0;
+    margin: 20px 0;
+    text-align: center;
+}
+
+.gameDescription li {
+    font-family: 'Arial', sans-serif;
+    font-size: 18px;
+    font-weight: bold;
+    color: #ffffff;                 /* white text */
+    background: linear-gradient(90deg, #ff00ff, #6600ff); /* gradient text effect */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 10px 0;
+    padding: 5px;
+    transition: transform 0.2s, text-shadow 0.2s;
+}
+
+.gameDescription li {
+    font-family: 'Arial', sans-serif;
+    font-size: 18px;
+    font-weight: bold;
+    color: #ffffff; /* white text */
+    background: linear-gradient(90deg, #ffffff, #eeeeee); /* subtle gradient */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 10px 0;
+    padding: 5px;
+    
+}
+
+#walletStatus {
+    font-size: 16px;
+    color: #fff;
+    max-width: 100%;       /* Prevent overflow outside container */
+    word-wrap: break-word; /* Wrap long wallet addresses */
+    overflow-wrap: anywhere;
+    white-space: normal;   /* Allow line breaks */
+    text-align: center;    /* Keep it centered */
+    margin-bottom: 10px;
+}

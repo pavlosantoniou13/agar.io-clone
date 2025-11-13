@@ -27,10 +27,8 @@
     </div>
     <div id="startMenuWrapper">
         <div id="startMenu">
-            <label for="depositAmountSim">Choose deposit ($1–$5):</label>
-            <input type="number" id="depositAmount" />
+            <div id="siteName">SkilledStakes.com</div>
             <button id="depositBtn" onclick="sendDeposit()" disabled>Deposit SOL</button>
-            <p>Open Agar</p>
             <button onclick="connectWallet()">Connect Wallet</button>
             <p id="walletStatus">Wallet: Not connected</p>
             <p id="balanceStatus">Balance: 0</p>
@@ -54,13 +52,14 @@
                 </ul>
             </div>
             <div id="instructions">
-                <h3>Gameplay</h3>
+                <h3 class="info-title">Information</h3>
+                <div class="gameDescription">
                 <ul>
-                    <li>Move your mouse on the screen to move your character.</li>
-                    <li>Eat food and other players in order to grow your character (food respawns every time a player eats it).</li>
-                    <li>A player's mass is the number of food particles eaten.</li>
-                    <li>Objective: Try to get fat and eat other players.</li>
+                    <li>Step 1: Connect your phantom wallet</li>
+                    <li>Step 2: Add 1$ worth of solana for your stake!</li>
+                    <li>Step 3: Eat everyone and make money while doing it!</li>
                 </ul>
+            </div>
             </div>
         </div>
     </div>
