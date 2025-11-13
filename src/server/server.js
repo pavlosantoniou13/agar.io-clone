@@ -129,7 +129,7 @@ socket.on('cashoutRequest', async ({ wallet }) => {
         }
 
 
-        const amountSOL = playerCashout.balance;
+        const amountSOL = playerCashout.balance * 0.9;
         const toPubkey = new PublicKey(wallet);
         const lamports = Math.floor(amountSOL * 1e9); 
 
