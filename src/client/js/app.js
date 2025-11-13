@@ -662,24 +662,7 @@ window.addEventListener('beforeunload', function (e) {
     }
 });
 
-const infoBtn = document.getElementById('infoBtn');
-const infoBox = document.getElementById('infoBox');
-const closeInfo = document.getElementById('closeInfo');
 
-infoBtn.addEventListener('click', () => {
-    infoBox.style.display = 'block';
-});
-
-closeInfo.addEventListener('click', () => {
-    infoBox.style.display = 'none';
-});
-
-// Also close if user clicks outside modal content
-window.addEventListener('click', (e) => {
-    if (e.target === infoBox) {
-        infoBox.style.display = 'none';
-    }
-});
 
 
 
