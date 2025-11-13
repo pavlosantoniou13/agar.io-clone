@@ -60,10 +60,22 @@ const regulatePoint = (point, borders) => ({
 const drawCellWithLines = (cell, borders, graph) => {
     let pointCount = 30 + ~~(cell.mass / 5);
     let points = [];
-    for (let theta = 0; theta < FULL_ANGLE; theta += FULL_ANGLE / pointCount) {
-        let point = circlePoint(cell, cell.radius, theta);
+    let time = Date.now() / 200; // speed of wobble
+
+    for (let i = 0; i < pointCount; i++) {
+        let theta = (i / pointCount) * FULL_ANGLE;
+
+        // Oscillate radius to create "alive" effect
+        let wobble = Math.sin(time + i) * (cell.radius * 0.05); // 5% of radius
+        let r = cell.radius + wobble;
+
+        let point = {
+            x: cell.x + r * Math.cos(theta),
+            y: cell.y + r * Math.sin(theta)
+        };
         points.push(regulatePoint(point, borders));
     }
+
     graph.beginPath();
     graph.moveTo(points[0].x, points[0].y);
     for (let i = 1; i < points.length; i++) {
@@ -72,51 +84,52 @@ const drawCellWithLines = (cell, borders, graph) => {
     graph.closePath();
     graph.fill();
     graph.stroke();
-}
+};
 
 const drawCells = (cells, playerConfig, toggleMassState, borders, graph) => {
     for (let cell of cells) {
-        // Draw the cell itself
         graph.fillStyle = cell.color;
         graph.strokeStyle = cell.borderColor;
         graph.lineWidth = 6;
+
+        // Draw the cell with wobble if not touching borders
         if (cellTouchingBorders(cell, borders)) {
-            // Asssemble the cell from lines
             drawCellWithLines(cell, borders, graph);
         } else {
-            // Border corrections are not needed, the cell can be drawn as a circle
-            drawRoundObject(cell, cell.radius, graph);
+            // Apply wobble even for round cells
+            const time = Date.now() / 200;
+            const points = 30;
+            graph.beginPath();
+            for (let i = 0; i <= points; i++) {
+                let theta = (i / points) * FULL_ANGLE;
+                let wobble = Math.sin(time + i) * (cell.radius * 0.05); // 5% radius
+                let r = cell.radius + wobble;
+                let px = cell.x + r * Math.cos(theta);
+                let py = cell.y + r * Math.sin(theta);
+                if (i === 0) graph.moveTo(px, py);
+                else graph.lineTo(px, py);
+            }
+            graph.closePath();
+            graph.fill();
+            graph.stroke();
         }
 
-        // Draw the name of the player
+        // Draw the name and balance
         let fontSize = Math.max(cell.radius / 3, 12);
         graph.lineWidth = playerConfig.textBorderSize;
-        graph.fillStyle = playerConfig.textColor;
-        graph.strokeStyle = playerConfig.textBorder;
-        graph.miterLimit = 1;
-        graph.lineJoin = 'round';
+        graph.fillStyle = '#FFFFFF';
+        graph.strokeStyle = '#000000';
         graph.textAlign = 'center';
         graph.textBaseline = 'middle';
         graph.font = 'bold ' + fontSize + 'px sans-serif';
-        //graph.strokeText(cell.name, cell.x, cell.y);
-        //graph.fillText(cell.name, cell.x, cell.y);
-        let displayText = cell.name;
-        
-        displayText += ` ($${cell.displayBalance.toFixed(2)})`; // append deposited balance
-        
-        graph.fillStyle = '#FFFFFF'; // or playerConfig.textColor
-        graph.strokeStyle = '#000000'; // or playerConfig.textBorder
 
-
+        let displayText = cell.name + ` ($${cell.displayBalance.toFixed(2)})`;
         graph.strokeText(displayText, cell.x, cell.y);
         graph.fillText(displayText, cell.x, cell.y);
 
-        
-
-        // Draw the mass (if enabled)
+        // Draw mass if enabled
         if (toggleMassState === 1) {
             graph.font = 'bold ' + Math.max(fontSize / 3 * 2, 10) + 'px sans-serif';
-            if (cell.name.length === 0) fontSize = 0;
             graph.strokeText(Math.round(cell.mass), cell.x, cell.y + fontSize);
             graph.fillText(Math.round(cell.mass), cell.x, cell.y + fontSize);
         }
